@@ -5,7 +5,10 @@ import {
     createUserWithEmailAndPassword, 
     signInWithEmailAndPassword, 
     signOut,
-    onAuthStateChanged
+    onAuthStateChanged,
+    updatePassword,
+    reauthenticateWithCredential,
+    EmailAuthProvider
 } from "firebase/auth";
 import { 
     getFirestore, 
@@ -20,7 +23,8 @@ import {
     where,
     orderBy,
     getDoc,
-    setDoc
+    setDoc,
+    onSnapshot
 } from "firebase/firestore";
 
 // Firebase configuration
@@ -39,40 +43,80 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// DOM Elements
-const loginForm = document.getElementById('login-form');
-const emailInput = document.getElementById('email');
-const passwordInput = document.getElementById('password');
-const loginBtn = document.getElementById('login-btn');
-const signupBtn = document.getElementById('signup-btn');
-const logoutBtn = document.getElementById('logout-btn');
-const userInfo = document.getElementById('user-info');
-const userEmail = document.getElementById('user-email');
-
-const studentDashboard = document.getElementById('student-dashboard');
-const adminDashboard = document.getElementById('admin-dashboard');
-
-const coursesList = document.getElementById('courses-list');
-const registeredCourses = document.getElementById('registered-courses');
-const departmentFilter = document.getElementById('department-filter');
-const levelFilter = document.getElementById('level-filter');
-const searchCourse = document.getElementById('search-course');
-
-const addCourseBtn = document.getElementById('add-course-btn');
-const addCourseForm = document.getElementById('add-course-form');
-const saveCourseBtn = document.getElementById('save-course-btn');
-const cancelCourseBtn = document.getElementById('cancel-course-btn');
-const adminCoursesList = document.getElementById('admin-courses-list');
-
-// State
+// State Management
 let currentUser = null;
+let userData = null;
 let allCourses = [];
 let userRegisteredCourses = [];
 
-// Authentication Functions
-loginBtn.addEventListener('click', async () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+// Page Management
+function showPage(pageId) {
+    // Hide all pages
+    document.querySelectorAll('.page').forEach(page => {
+        page.classList.remove('active');
+    });
+    
+    // Show target page
+    document.getElementById(pageId).classList.add('active');
+    
+    // Update navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    if (pageId !== 'login-page' && pageId !== 'registration-page') {
+        document.querySelector(`[data-page="${pageId}"]`)?.classList.add('active');
+    }
+}
+
+// Initialize the application
+function initApp() {
+    setupEventListeners();
+    showPage('login-page');
+}
+
+// Event Listeners Setup
+function setupEventListeners() {
+    // Authentication
+    document.getElementById('login-btn').addEventListener('click', handleLogin);
+    document.getElementById('signup-btn').addEventListener('click', handleSignup);
+    document.getElementById('goto-signup').addEventListener('click', () => showPage('registration-page'));
+    document.getElementById('goto-login').addEventListener('click', () => showPage('login-page'));
+    document.getElementById('logout-btn').addEventListener('click', handleLogout);
+    
+    // Navigation
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = e.target.getAttribute('data-page');
+            showPage(page === 'dashboard' ? 'dashboard-page' : `${page}-page`);
+            if (page === 'courses') loadCourses();
+            if (page === 'my-courses') loadUserRegisteredCourses();
+            if (page === 'profile') loadProfile();
+        });
+    });
+    
+    // Course Management
+    document.getElementById('clear-filters').addEventListener('click', clearFilters);
+    document.getElementById('department-filter').addEventListener('change', applyFilters);
+    document.getElementById('level-filter').addEventListener('change', applyFilters);
+    document.getElementById('credit-filter').addEventListener('change', applyFilters);
+    document.getElementById('search-course').addEventListener('input', applyFilters);
+    
+    // Profile Management
+    document.getElementById('profile-form').addEventListener('submit', saveProfile);
+    document.getElementById('password-form').addEventListener('submit', changePassword);
+    
+    // Admin Management
+    document.getElementById('add-course-btn').addEventListener('click', toggleCourseForm);
+    document.getElementById('cancel-course-btn').addEventListener('click', toggleCourseForm);
+    document.getElementById('course-form').addEventListener('submit', saveCourse);
+}
+
+// Authentication Handlers
+async function handleLogin() {
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
     
     if (!email || !password) {
         showNotification('Please enter email and password', 'error');
@@ -88,14 +132,22 @@ loginBtn.addEventListener('click', async () => {
     } finally {
         showLoading(false);
     }
-});
+}
 
-signupBtn.addEventListener('click', async () => {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+async function handleSignup() {
+    const name = document.getElementById('signup-name').value;
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const confirmPassword = document.getElementById('signup-confirm-password').value;
+    const role = document.getElementById('signup-role').value;
     
-    if (!email || !password) {
-        showNotification('Please enter email and password', 'error');
+    if (!name || !email || !password || !confirmPassword) {
+        showNotification('Please fill in all fields', 'error');
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showNotification('Passwords do not match', 'error');
         return;
     }
 
@@ -105,62 +157,32 @@ signupBtn.addEventListener('click', async () => {
         
         // Create user document in Firestore
         await setDoc(doc(db, 'users', userCredential.user.uid), {
+            name: name,
             email: email,
-            role: 'student', // Default role
+            role: role,
+            studentId: '',
+            department: '',
             createdAt: new Date()
         });
         
         showNotification('Account created successfully!', 'success');
+        showPage('login-page');
     } catch (error) {
         showNotification(error.message, 'error');
     } finally {
         showLoading(false);
     }
-});
+}
 
-logoutBtn.addEventListener('click', async () => {
+async function handleLogout() {
     try {
         await signOut(auth);
         showNotification('Logged out successfully', 'success');
+        showPage('login-page');
     } catch (error) {
         showNotification(error.message, 'error');
     }
-});
-
-// Auth State Listener
-onAuthStateChanged(auth, async (user) => {
-    currentUser = user;
-    
-    if (user) {
-        // User is signed in
-        loginForm.style.display = 'none';
-        logoutBtn.style.display = 'block';
-        userInfo.style.display = 'block';
-        userEmail.textContent = user.email;
-        
-        // Get user role and load appropriate dashboard
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const userData = userDoc.data();
-        
-        if (userData.role === 'admin') {
-            adminDashboard.style.display = 'block';
-            studentDashboard.style.display = 'none';
-            loadAdminCourses();
-        } else {
-            adminDashboard.style.display = 'none';
-            studentDashboard.style.display = 'block';
-            await loadCourses();
-            await loadUserRegisteredCourses();
-        }
-    } else {
-        // User is signed out
-        loginForm.style.display = 'block';
-        logoutBtn.style.display = 'none';
-        userInfo.style.display = 'none';
-        studentDashboard.style.display = 'none';
-        adminDashboard.style.display = 'none';
-    }
-});
+}
 
 // Course Management Functions
 async function loadCourses() {
@@ -174,7 +196,7 @@ async function loadCourses() {
         });
         
         renderCourses(allCourses);
-        populateDepartmentFilter();
+        populateFilters();
     } catch (error) {
         showNotification('Error loading courses: ' + error.message, 'error');
     } finally {
@@ -183,7 +205,13 @@ async function loadCourses() {
 }
 
 function renderCourses(courses) {
+    const coursesList = document.getElementById('courses-list');
     coursesList.innerHTML = '';
+    
+    if (courses.length === 0) {
+        coursesList.innerHTML = '<p>No courses found matching your criteria.</p>';
+        return;
+    }
     
     courses.forEach(course => {
         const isRegistered = userRegisteredCourses.some(regCourse => regCourse.id === course.id);
@@ -195,18 +223,18 @@ function renderCourses(courses) {
             <h3>${course.name}</h3>
             <div class="course-code">${course.code}</div>
             <div class="course-info">
-                <div>Department: ${course.department}</div>
-                <div>Level: ${course.level}</div>
-                <div>Credits: ${course.credits}</div>
-                <div>Instructor: ${course.instructor}</div>
+                <div><strong>Department:</strong> ${course.department}</div>
+                <div><strong>Level:</strong> ${course.level}</div>
+                <div><strong>Credits:</strong> ${course.credits}</div>
+                <div><strong>Instructor:</strong> ${course.instructor}</div>
                 <div class="capacity">
-                    Registered: ${course.registeredStudents ? course.registeredStudents.length : 0}/${course.capacity}
+                    <strong>Enrollment:</strong> ${course.registeredStudents ? course.registeredStudents.length : 0}/${course.capacity}
                 </div>
             </div>
-            <p>${course.description || ''}</p>
+            <p>${course.description || 'No description available.'}</p>
             <button onclick="registerForCourse('${course.id}')" 
                     ${isRegistered || isFull || !currentUser ? 'disabled' : ''}>
-                ${isRegistered ? 'Registered' : isFull ? 'Full' : 'Register'}
+                ${isRegistered ? 'Already Registered' : isFull ? 'Course Full' : 'Register for Course'}
             </button>
         `;
         coursesList.appendChild(courseCard);
@@ -237,6 +265,7 @@ async function registerForCourse(courseId) {
         showNotification('Successfully registered for course!', 'success');
         await loadCourses();
         await loadUserRegisteredCourses();
+        updateDashboardStats();
     } catch (error) {
         showNotification('Error registering for course: ' + error.message, 'error');
     } finally {
@@ -256,6 +285,9 @@ async function loadUserRegisteredCourses() {
                 userData.registeredCourses.includes(course.id)
             );
             renderRegisteredCourses();
+        } else {
+            userRegisteredCourses = [];
+            renderRegisteredCourses();
         }
     } catch (error) {
         showNotification('Error loading registered courses: ' + error.message, 'error');
@@ -263,27 +295,39 @@ async function loadUserRegisteredCourses() {
 }
 
 function renderRegisteredCourses() {
-    registeredCourses.innerHTML = '';
+    const registeredCourses = document.getElementById('registered-courses');
+    const totalCreditsElement = document.getElementById('total-credits');
     
     if (userRegisteredCourses.length === 0) {
-        registeredCourses.innerHTML = '<p>No courses registered yet.</p>';
+        registeredCourses.innerHTML = '<p>No courses registered for this semester.</p>';
+        totalCreditsElement.textContent = '0';
         return;
     }
     
+    let totalCredits = 0;
+    registeredCourses.innerHTML = '';
+    
     userRegisteredCourses.forEach(course => {
+        totalCredits += course.credits;
+        
         const courseElement = document.createElement('div');
         courseElement.className = 'registered-course';
         courseElement.innerHTML = `
             <h4>${course.code} - ${course.name}</h4>
-            <div>Credits: ${course.credits}</div>
-            <div>Instructor: ${course.instructor}</div>
+            <div><strong>Credits:</strong> ${course.credits}</div>
+            <div><strong>Instructor:</strong> ${course.instructor}</div>
+            <div><strong>Schedule:</strong> To be announced</div>
             <button onclick="dropCourse('${course.id}')">Drop Course</button>
         `;
         registeredCourses.appendChild(courseElement);
     });
+    
+    totalCreditsElement.textContent = totalCredits;
 }
 
 async function dropCourse(courseId) {
+    if (!confirm('Are you sure you want to drop this course?')) return;
+
     try {
         showLoading(true);
         const courseRef = doc(db, 'courses', courseId);
@@ -302,6 +346,7 @@ async function dropCourse(courseId) {
         showNotification('Course dropped successfully!', 'success');
         await loadCourses();
         await loadUserRegisteredCourses();
+        updateDashboardStats();
     } catch (error) {
         showNotification('Error dropping course: ' + error.message, 'error');
     } finally {
@@ -310,10 +355,11 @@ async function dropCourse(courseId) {
 }
 
 // Filter Functions
-function populateDepartmentFilter() {
+function populateFilters() {
     const departments = [...new Set(allCourses.map(course => course.department))];
-    departmentFilter.innerHTML = '<option value="">All Departments</option>';
+    const departmentFilter = document.getElementById('department-filter');
     
+    departmentFilter.innerHTML = '<option value="">All Departments</option>';
     departments.forEach(dept => {
         const option = document.createElement('option');
         option.value = dept;
@@ -322,16 +368,13 @@ function populateDepartmentFilter() {
     });
 }
 
-departmentFilter.addEventListener('change', applyFilters);
-levelFilter.addEventListener('change', applyFilters);
-searchCourse.addEventListener('input', applyFilters);
-
 function applyFilters() {
     let filteredCourses = [...allCourses];
     
-    const department = departmentFilter.value;
-    const level = levelFilter.value;
-    const search = searchCourse.value.toLowerCase();
+    const department = document.getElementById('department-filter').value;
+    const level = document.getElementById('level-filter').value;
+    const credits = document.getElementById('credit-filter').value;
+    const search = document.getElementById('search-course').value.toLowerCase();
     
     if (department) {
         filteredCourses = filteredCourses.filter(course => course.department === department);
@@ -341,28 +384,129 @@ function applyFilters() {
         filteredCourses = filteredCourses.filter(course => course.level.toString() === level);
     }
     
+    if (credits) {
+        filteredCourses = filteredCourses.filter(course => course.credits.toString() === credits);
+    }
+    
     if (search) {
         filteredCourses = filteredCourses.filter(course => 
             course.name.toLowerCase().includes(search) ||
             course.code.toLowerCase().includes(search) ||
-            course.instructor.toLowerCase().includes(search)
+            course.instructor.toLowerCase().includes(search) ||
+            course.department.toLowerCase().includes(search)
         );
     }
     
     renderCourses(filteredCourses);
 }
 
+function clearFilters() {
+    document.getElementById('department-filter').value = '';
+    document.getElementById('level-filter').value = '';
+    document.getElementById('credit-filter').value = '';
+    document.getElementById('search-course').value = '';
+    applyFilters();
+}
+
+// Profile Management
+async function loadProfile() {
+    if (!currentUser || !userData) return;
+    
+    document.getElementById('profile-name').value = userData.name || '';
+    document.getElementById('profile-email').value = userData.email || '';
+    document.getElementById('profile-role').value = userData.role || 'student';
+    document.getElementById('profile-student-id').value = userData.studentId || '';
+    document.getElementById('profile-department').value = userData.department || '';
+}
+
+async function saveProfile(e) {
+    e.preventDefault();
+    
+    const studentId = document.getElementById('profile-student-id').value;
+    const department = document.getElementById('profile-department').value;
+    
+    try {
+        showLoading(true);
+        await updateDoc(doc(db, 'users', currentUser.uid), {
+            studentId: studentId,
+            department: department,
+            updatedAt: new Date()
+        });
+        
+        showNotification('Profile updated successfully!', 'success');
+    } catch (error) {
+        showNotification('Error updating profile: ' + error.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+async function changePassword(e) {
+    e.preventDefault();
+    
+    const currentPass = document.getElementById('current-password').value;
+    const newPass = document.getElementById('new-password').value;
+    const confirmPass = document.getElementById('confirm-new-password').value;
+    
+    if (!currentPass || !newPass || !confirmPass) {
+        showNotification('Please fill in all password fields', 'error');
+        return;
+    }
+    
+    if (newPass !== confirmPass) {
+        showNotification('New passwords do not match', 'error');
+        return;
+    }
+    
+    try {
+        showLoading(true);
+        
+        // Reauthenticate user
+        const credential = EmailAuthProvider.credential(currentUser.email, currentPass);
+        await reauthenticateWithCredential(currentUser, credential);
+        
+        // Update password
+        await updatePassword(currentUser, newPass);
+        
+        showNotification('Password updated successfully!', 'success');
+        document.getElementById('password-form').reset();
+    } catch (error) {
+        showNotification('Error changing password: ' + error.message, 'error');
+    } finally {
+        showLoading(false);
+    }
+}
+
+// Dashboard Functions
+function updateDashboardStats() {
+    document.getElementById('stat-registered').textContent = userRegisteredCourses.length;
+    document.getElementById('stat-available').textContent = allCourses.length;
+    
+    const totalCredits = userRegisteredCourses.reduce((sum, course) => sum + course.credits, 0);
+    document.getElementById('stat-credits').textContent = totalCredits;
+    
+    // Update recent courses
+    const recentCourses = document.getElementById('recent-courses');
+    if (userRegisteredCourses.length === 0) {
+        recentCourses.innerHTML = '<p>No courses registered yet.</p>';
+    } else {
+        recentCourses.innerHTML = userRegisteredCourses.slice(0, 3).map(course => `
+            <div class="recent-course">
+                <strong>${course.code}</strong> - ${course.name}
+            </div>
+        `).join('');
+    }
+}
+
 // Admin Functions
-addCourseBtn.addEventListener('click', () => {
-    addCourseForm.style.display = addCourseForm.style.display === 'none' ? 'block' : 'none';
-});
+function toggleCourseForm() {
+    const form = document.getElementById('add-course-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
 
-cancelCourseBtn.addEventListener('click', () => {
-    addCourseForm.style.display = 'none';
-    clearCourseForm();
-});
-
-saveCourseBtn.addEventListener('click', async () => {
+async function saveCourse(e) {
+    e.preventDefault();
+    
     const courseData = {
         code: document.getElementById('course-code').value,
         name: document.getElementById('course-name').value,
@@ -373,100 +517,87 @@ saveCourseBtn.addEventListener('click', async () => {
         instructor: document.getElementById('course-instructor').value,
         description: document.getElementById('course-description').value,
         registeredStudents: [],
-        createdAt: new Date()
+        createdAt: new Date(),
+        active: true
     };
-    
-    // Validation
-    if (!courseData.code || !courseData.name || !courseData.department) {
-        showNotification('Please fill in all required fields', 'error');
-        return;
-    }
     
     try {
         showLoading(true);
         await addDoc(collection(db, 'courses'), courseData);
         showNotification('Course added successfully!', 'success');
-        clearCourseForm();
-        addCourseForm.style.display = 'none';
-        await loadAdminCourses();
+        document.getElementById('course-form').reset();
+        toggleCourseForm();
+        await loadCourses();
     } catch (error) {
         showNotification('Error adding course: ' + error.message, 'error');
     } finally {
         showLoading(false);
     }
-});
-
-async function loadAdminCourses() {
-    try {
-        const querySnapshot = await getDocs(collection(db, 'courses'));
-        adminCoursesList.innerHTML = '';
-        
-        querySnapshot.forEach((doc) => {
-            const course = { id: doc.id, ...doc.data() };
-            const courseElement = document.createElement('div');
-            courseElement.className = 'course-card';
-            courseElement.innerHTML = `
-                <h3>${course.code} - ${course.name}</h3>
-                <div>Department: ${course.department}</div>
-                <div>Level: ${course.level} | Credits: ${course.credits}</div>
-                <div>Instructor: ${course.instructor}</div>
-                <div>Capacity: ${course.registeredStudents ? course.registeredStudents.length : 0}/${course.capacity}</div>
-                <button onclick="deleteCourse('${course.id}')">Delete</button>
-            `;
-            adminCoursesList.appendChild(courseElement);
-        });
-    } catch (error) {
-        showNotification('Error loading courses: ' + error.message, 'error');
-    }
-}
-
-async function deleteCourse(courseId) {
-    if (!confirm('Are you sure you want to delete this course?')) return;
-    
-    try {
-        showLoading(true);
-        // Note: In a real application, you might want to use deleteDoc
-        // but we'll just update the course to be inactive
-        await updateDoc(doc(db, 'courses', courseId), {
-            active: false
-        });
-        showNotification('Course deleted successfully!', 'success');
-        await loadAdminCourses();
-    } catch (error) {
-        showNotification('Error deleting course: ' + error.message, 'error');
-    } finally {
-        showLoading(false);
-    }
-}
-
-function clearCourseForm() {
-    document.getElementById('course-code').value = '';
-    document.getElementById('course-name').value = '';
-    document.getElementById('course-department').value = '';
-    document.getElementById('course-level').value = '';
-    document.getElementById('course-credits').value = '';
-    document.getElementById('course-capacity').value = '';
-    document.getElementById('course-instructor').value = '';
-    document.getElementById('course-description').value = '';
 }
 
 // Utility Functions
 function showNotification(message, type = 'info') {
     const notification = document.getElementById('notification');
     notification.textContent = message;
-    notification.className = type;
+    notification.className = `notification ${type}`;
     notification.style.display = 'block';
     
     setTimeout(() => {
         notification.style.display = 'none';
-    }, 3000);
+    }, 5000);
 }
 
 function showLoading(show) {
-    document.getElementById('loading').style.display = show ? 'block' : 'none';
+    document.getElementById('loading').style.display = show ? 'flex' : 'none';
 }
 
-// Make functions available globally for onclick handlers
+// Auth State Listener
+onAuthStateChanged(auth, async (user) => {
+    currentUser = user;
+    
+    if (user) {
+        // User is signed in
+        try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            userData = userDoc.data();
+            
+            // Update UI
+            document.getElementById('nav-user-email').textContent = user.email;
+            document.getElementById('dashboard-username').textContent = userData?.name || user.email;
+            
+            // Show main app
+            showPage('main-app');
+            showPage('dashboard-page');
+            
+            // Load user-specific data
+            await loadCourses();
+            await loadUserRegisteredCourses();
+            updateDashboardStats();
+            
+            // Show admin page if user is admin
+            if (userData?.role === 'admin') {
+                document.getElementById('admin-page').style.display = 'block';
+                showPage('admin-page');
+            } else {
+                document.getElementById('admin-page').style.display = 'none';
+            }
+            
+        } catch (error) {
+            showNotification('Error loading user data: ' + error.message, 'error');
+        }
+    } else {
+        // User is signed out
+        showPage('login-page');
+        userData = null;
+        allCourses = [];
+        userRegisteredCourses = [];
+    }
+});
+
+// Make functions available globally
+window.showPage = showPage;
 window.registerForCourse = registerForCourse;
 window.dropCourse = dropCourse;
-window.deleteCourse = deleteCourse;
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Course Registration System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/auth.js"></script>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <h1>Course Registration System</h1>
+                <p>Sign in to your account</p>
+            </div>
+            
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                
+                <button type="submit" class="btn-primary">Sign In</button>
+                
+                <div class="form-footer">
+                    <p>Don't have an account? <a href="register.html">Create one here</a></p>
+                </div>
+            </form>
+            
+            <div id="notification" class="notification"></div>
+        </div>
+    </div>
+
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Signing in...</p>
+    </div>
+</body>
+</html>

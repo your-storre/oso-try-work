@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Registration System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="app.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Course Registration System</h1>
+            <div id="auth-section">
+                <div id="login-form">
+                    <input type="email" id="email" placeholder="Email">
+                    <input type="password" id="password" placeholder="Password">
+                    <button id="login-btn">Login</button>
+                    <button id="signup-btn">Sign Up</button>
+                    <button id="logout-btn" style="display: none;">Logout</button>
+                </div>
+                <div id="user-info" style="display: none;">
+                    <span id="user-email"></span>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <!-- Student Dashboard -->
+            <section id="student-dashboard" style="display: none;">
+                <h2>Available Courses</h2>
+                <div class="filters">
+                    <select id="department-filter">
+                        <option value="">All Departments</option>
+                    </select>
+                    <select id="level-filter">
+                        <option value="">All Levels</option>
+                        <option value="100">100 Level</option>
+                        <option value="200">200 Level</option>
+                        <option value="300">300 Level</option>
+                        <option value="400">400 Level</option>
+                    </select>
+                    <input type="text" id="search-course" placeholder="Search courses...">
+                </div>
+                
+                <div id="courses-list" class="courses-grid"></div>
+                
+                <h2>My Registered Courses</h2>
+                <div id="registered-courses" class="registered-list"></div>
+            </section>
+
+            <!-- Admin Dashboard -->
+            <section id="admin-dashboard" style="display: none;">
+                <h2>Admin Panel</h2>
+                <div class="admin-actions">
+                    <button id="add-course-btn">Add New Course</button>
+                    <button id="view-students-btn">View Students</button>
+                </div>
+
+                <!-- Add Course Form -->
+                <div id="add-course-form" style="display: none;">
+                    <h3>Add New Course</h3>
+                    <input type="text" id="course-code" placeholder="Course Code">
+                    <input type="text" id="course-name" placeholder="Course Name">
+                    <input type="text" id="course-department" placeholder="Department">
+                    <input type="number" id="course-level" placeholder="Level" min="100" max="400">
+                    <input type="number" id="course-credits" placeholder="Credits" min="1" max="6">
+                    <input type="number" id="course-capacity" placeholder="Capacity" min="1">
+                    <input type="text" id="course-instructor" placeholder="Instructor">
+                    <textarea id="course-description" placeholder="Course Description"></textarea>
+                    <button id="save-course-btn">Save Course</button>
+                    <button id="cancel-course-btn">Cancel</button>
+                </div>
+
+                <!-- Courses Management -->
+                <div id="admin-courses-list"></div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Spinner -->
+    <div id="loading" style="display: none;">Loading...</div>
+
+    <!-- Notification System -->
+    <div id="notification" style="display: none;"></div>
+</body>
+</html>

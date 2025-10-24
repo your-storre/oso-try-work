@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Course Registration System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h2>CourseReg</h2>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link active">Dashboard</a>
+            <a href="courses.html" class="nav-link">Browse Courses</a>
+            <a href="my-courses.html" class="nav-link">My Courses</a>
+            <a href="profile.html" class="nav-link">Profile</a>
+            <button id="logout-btn" class="logout-btn">Logout</button>
+        </div>
+        <div class="user-info">
+            <span id="nav-user-email"></span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, <span id="dashboard-username"></span>!</p>
+        </div>
+        
+        <!-- Statistics Cards -->
+        <div class="dashboard-stats">
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <h3>Registered Courses</h3>
+                <div class="stat-number" id="stat-registered">0</div>
+                <p>Current semester</p>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🎯</div>
+                <h3>Available Courses</h3>
+                <div class="stat-number" id="stat-available">0</div>
+                <p>Open for registration</p>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">⭐</div>
+                <h3>Total Credits</h3>
+                <div class="stat-number" id="stat-credits">0</div>
+                <p>This semester</p>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">📅</div>
+                <h3>Academic Status</h3>
+                <div class="stat-text" id="stat-status">Active</div>
+                <p>Good standing</p>
+            </div>
+        </div>
+
+        <!-- Dashboard Sections -->
+        <div class="dashboard-sections">
+            <div class="section-card">
+                <h3>Recent Courses</h3>
+                <div id="recent-courses" class="recent-courses-list">
+                    <p>Loading your courses...</p>
+                </div>
+                <a href="my-courses.html" class="view-all-link">View All Courses →</a>
+            </div>
+            
+            <div class="section-card">
+                <h3>Quick Actions</h3>
+                <div class="quick-actions">
+                    <a href="courses.html" class="action-btn">
+                        <span class="action-icon">🔍</span>
+                        <span>Browse Courses</span>
+                    </a>
+                    <a href="my-courses.html" class="action-btn">
+                        <span class="action-icon">📖</span>
+                        <span>My Courses</span>
+                    </a>
+                    <a href="profile.html" class="action-btn">
+                        <span class="action-icon">👤</span>
+                        <span>Update Profile</span>
+                    </a>
+                </div>
+            </div>
+            
+            <div class="section-card">
+                <h3>Academic Calendar</h3>
+                <div class="calendar-events">
+                    <div class="event-item">
+                        <strong>Course Registration</strong>
+                        <span>Open until Dec 15</span>
+                    </div>
+                    <div class="event-item">
+                        <strong>Add/Drop Period</strong>
+                        <span>Until Jan 20</span>
+                    </div>
+                    <div class="event-item">
+                        <strong>Midterm Exams</strong>
+                        <span>Mar 1-15</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notifications -->
+        <div class="section-card">
+            <h3>Notifications</h3>
+            <div id="notifications-list" class="notifications-list">
+                <div class="notification-item info">
+                    <strong>Welcome to the new semester!</strong>
+                    <p>Course registration is now open for all students.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification"></div>
+</body>
+</html>

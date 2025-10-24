@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - Course Registration System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/my-courses.js"></script>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h2>CourseReg</h2>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="courses.html" class="nav-link">Browse Courses</a>
+            <a href="my-courses.html" class="nav-link active">My Courses</a>
+            <a href="profile.html" class="nav-link">Profile</a>
+            <button id="logout-btn" class="logout-btn">Logout</button>
+        </div>
+        <div class="user-info">
+            <span id="nav-user-email"></span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>My Courses</h1>
+            <p>Manage your registered courses and academic progress</p>
+        </div>
+
+        <!-- Current Semester -->
+        <div class="registered-courses-section">
+            <div class="section-header">
+                <h2>Current Semester - Spring 2024</h2>
+                <div class="semester-info">
+                    <div class="total-credits">
+                        Total Credits: <span id="total-credits">0</span>
+                    </div>
+                    <div class="course-count">
+                        Courses: <span id="course-count">0</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="registered-courses" class="registered-list">
+                <!-- Registered courses will be loaded here -->
+            </div>
+            
+            <div id="no-registered-courses" class="empty-state" style="display: none;">
+                <h3>No courses registered</h3>
+                <p>You haven't registered for any courses this semester.</p>
+                <a href="courses.html" class="btn-primary">Browse Courses</a>
+            </div>
+        </div>
+
+        <!-- Course Schedule -->
+        <div class="section-card">
+            <h2>Weekly Schedule</h2>
+            <div id="course-schedule" class="schedule-container">
+                <div class="schedule-placeholder">
+                    <p>Your course schedule will appear here once you register for courses.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course History -->
+        <div class="course-history-section">
+            <h2>Course History</h2>
+            <div id="course-history" class="history-list">
+                <div class="empty-state">
+                    <h3>No course history</h3>
+                    <p>Your completed courses will appear here.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Drop Course Modal -->
+        <div id="drop-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Drop Course</h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to drop <strong id="drop-course-name"></strong>?</p>
+                    <p class="text-warning">This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button id="confirm-drop-btn" class="btn-danger">Yes, Drop Course</button>
+                    <button class="btn-secondary modal-close">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading your courses...</p>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification"></div>
+</body>
+</html>

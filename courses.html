@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browse Courses - Course Registration System</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/courses.js"></script>
+</head>
+<body>
+    <!-- Navigation Header -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <h2>CourseReg</h2>
+        </div>
+        <div class="nav-links">
+            <a href="dashboard.html" class="nav-link">Dashboard</a>
+            <a href="courses.html" class="nav-link active">Browse Courses</a>
+            <a href="my-courses.html" class="nav-link">My Courses</a>
+            <a href="profile.html" class="nav-link">Profile</a>
+            <button id="logout-btn" class="logout-btn">Logout</button>
+        </div>
+        <div class="user-info">
+            <span id="nav-user-email"></span>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="page-header">
+            <h1>Browse Courses</h1>
+            <p>Explore and register for available courses</p>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="filters-section">
+            <div class="filters-header">
+                <h3>Filter Courses</h3>
+                <button id="clear-filters" class="btn-secondary">Clear All</button>
+            </div>
+            <div class="filters">
+                <div class="filter-group">
+                    <label>Department</label>
+                    <select id="department-filter">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Level</label>
+                    <select id="level-filter">
+                        <option value="">All Levels</option>
+                        <option value="100">100 Level</option>
+                        <option value="200">200 Level</option>
+                        <option value="300">300 Level</option>
+                        <option value="400">400 Level</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Credits</label>
+                    <select id="credit-filter">
+                        <option value="">All Credits</option>
+                        <option value="1">1 Credit</option>
+                        <option value="2">2 Credits</option>
+                        <option value="3">3 Credits</option>
+                        <option value="4">4 Credits</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label>Search</label>
+                    <input type="text" id="search-course" placeholder="Search courses...">
+                </div>
+            </div>
+        </div>
+
+        <!-- Courses Grid -->
+        <div class="courses-section">
+            <div class="section-header">
+                <h2>Available Courses</h2>
+                <div class="courses-count">
+                    Showing <span id="courses-count">0</span> courses
+                </div>
+            </div>
+            
+            <div id="courses-list" class="courses-grid">
+                <!-- Courses will be loaded here -->
+            </div>
+            
+            <div id="no-courses" class="no-courses" style="display: none;">
+                <div class="empty-state">
+                    <h3>No courses found</h3>
+                    <p>Try adjusting your filters or search terms</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Course Details Modal -->
+        <div id="course-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modal-course-title"></h2>
+                    <button class="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div id="modal-course-details"></div>
+                </div>
+                <div class="modal-footer">
+                    <button id="modal-register-btn" class="btn-primary">Register for Course</button>
+                    <button class="btn-secondary modal-close">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Spinner -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <p>Loading courses...</p>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification"></div>
+</body>
+</html>
